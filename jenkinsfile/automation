@@ -59,25 +59,10 @@ node ("docker") {
     }
 
     finally {
-        stage ("Remove containers") {
-            // gather necessary logs and then remove test containers
-            utils.dockerLogs portal, "portal.log"
-
-            // for troubleshooting run "utils.dockerLogs container" to see docker logs before closing
-            // Example:
-            echo "lambda server logs:"
-            utils.dockerLogs lambda, "lambda.log"
-
-            echo "cdn server logs:"
-            utils.dockerLogs cdn, "cdn.log"
-
-            // Destroy all containers and network
-            utils.teardown()
-        }
 
         stage ("Archive results") {
             //zip zipFile: 'screenshots.zip', dir: 'test-output/screenshots'
-            archiveArtifacts artifacts: '**/database.log, *.log, screenshots.zip, **/screenshots_*.pdf, **/extent-report.html', allowEmptyArchive: true
+            archiveArtifacts artifacts: ' *.log, screenshots.zip, **/screenshots_*.pdf, **/extent-report.html', allowEmptyArchive: true
             junit testResults: "test-output/xml/*.xml", keepLongStdio: true
         }
 

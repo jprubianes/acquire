@@ -1,7 +1,7 @@
 
 //--- global variables ---
-gitHost = "https://github.com/jprubianes"
-gitOrg = "acquire"
+host = "https://github.com/jprubianes"
+repo = "acquire"
 containers = []
 pythonImg = null
 workspace = null
@@ -43,24 +43,14 @@ def teardown() {
 
 
 def checkoutRepo(host, repo, branch="master", credentials=null) {
-    def url = "${host}/${repo}"
+    def url = host + "/" + repo
     dir(repo) {
-        if (credentials != null) {
-            try {
-                git url: url, branch: branch, poll: false, credentialsId: credentials
-            }
-            catch (error) {
-                echo error.getMessage()
-                git url: url, branch: "master", poll: false, credentialsId: credentials
-            }
-        } else {
-            try {
-                git url: url, branch: branch, poll: false
-            }
-            catch (error) {
-                echo error.getMessage()
-                git url: url, branch: "master", poll: false
-            }
+        try {
+            git url: url, branch: branch, poll: false
+        }
+        catch (error) {
+            echo error.getMessage()
+            git url: url, branch: "master", poll: false
         }
     }
 }

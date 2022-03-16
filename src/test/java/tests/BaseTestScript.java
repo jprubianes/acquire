@@ -8,6 +8,9 @@ import org.testng.annotations.BeforeClass;
 public class BaseTestScript {
 
     protected static Browser driver;
+    protected static String user = "cajiwihe@dropjar.com";
+    protected static String password = "Hereisanew1!";
+    protected static String noDepartmentsTitle = "No Departments...Yet";
 
     @BeforeClass
     public void setup() {
