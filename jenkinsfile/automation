@@ -1,0 +1,86 @@
+// global variables
+def utils
+def buildImg //images
+
+
+node ("docker") {
+
+    def buildsToKeep = (env.BRANCH_NAME == "master" || env.BRANCH_NAME == "dev") ? 20 : 10
+    properties([
+            disableConcurrentBuilds(),
+            [$class: 'BuildDiscarderProperty', strategy: [
+                    $class: 'LogRotator', artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: "${buildsToKeep}"
+            ]]
+    ])
+
+    // get latest codes
+    stage("Checkout codes") {
+        checkout scm
+        utils = load "jenkinsfile/Utils.groovy"
+        utils.setup(env)
+
+    }
+
+    stage("Prepare images") {
+        parallel (
+            "Java" : { buildImg = utils.dockerImage name: "build", dockerfile: "jenkins/docker/java" },
+        )
+    }
+
+    try {
+        stage("Deployment") {
+            parallel (
+                "Selenium" : { utils.startSeleniumGrid chrome: 5 }
+            )
+        }
+
+        stage("Run tests") {
+
+            utils.runTest (
+                image: buildImg,
+
+                script:
+                """
+                    ### Clear previous test results ###
+                    rm -rf test-output
+
+                    ### Run UI test suites in parallel ###
+                                            ./gradlew test \
+                                                -Psuites='TestNG.xml' \
+                                                -Denv=jenkins \
+                """
+            )
+        }
+    }
+
+    catch (error) {
+        echo error.getMessage()
+        throw error
+    }
+
+    finally {
+        stage ("Remove containers") {
+            // gather necessary logs and then remove test containers
+            utils.dockerLogs portal, "portal.log"
+
+            // for troubleshooting run "utils.dockerLogs container" to see docker logs before closing
+            // Example:
+            echo "lambda server logs:"
+            utils.dockerLogs lambda, "lambda.log"
+
+            echo "cdn server logs:"
+            utils.dockerLogs cdn, "cdn.log"
+
+            // Destroy all containers and network
+            utils.teardown()
+        }
+
+        stage ("Archive results") {
+            //zip zipFile: 'screenshots.zip', dir: 'test-output/screenshots'
+            archiveArtifacts artifacts: '**/database.log, *.log, screenshots.zip, **/screenshots_*.pdf, **/extent-report.html', allowEmptyArchive: true
+            junit testResults: "test-output/xml/*.xml", keepLongStdio: true
+        }
+
+    }
+}
+
